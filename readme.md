@@ -1,79 +1,55 @@
-# rag_chatbot
+# RAG Chatbot
 
-A simple Retrieval-Augmented Generation (RAG) chatbot that answers questions about a PDF document. 
+A Retrieval-Augmented Generation (RAG) system that answers questions about PDF documents using LangChain, local embeddings, and Groq LLM inference.
 
-## How it works
+## Project structure
 
-1. **Load** — `PyPDFLoader` reads a PDF file into raw documents.
-2. **Chunk** — `RecursiveCharacterTextSplitter` splits the document into overlapping chunks (1000 chars, 200 overlap) so context isn't cut off mid-thought.
-3. **Embed** — Each chunk is converted into a vector using `sentence-transformers/all-MiniLM-L6-v2` (runs locally, no API calls needed for embeddings).
-4. **Store & Retrieve** — Embeddings are stored in a Chroma vector database. At query time, the most relevant chunks are retrieved via similarity search.
-5. **Generate** — The retrieved chunks are passed as context to `llama-3.3-70b-versatile` via the Groq API, which generates the final answer.
-
-## Tech stack
-
-- [LangChain](https://www.langchain.com/) — orchestration
-- [HuggingFace Sentence Transformers](https://www.sbert.net/) — local embeddings
-- [Chroma](https://www.trychroma.com/) — vector store
-- [Groq](https://groq.com/) — fast LLM inference
-
-## Setup
-
-### 1. Clone the repo
-
-```bash
-git clone https://github.com/prakrist21/rag_chatbot.git
-cd rag_chatbot
+```
+.
+├── docs/                  # Place PDF files here
+├── rag_chatbot/           # v1 — single-file prototype
+│   ├── chatbot.py         #   Loads, chunks, embeds, queries in-memory
+│   └── readme.md
+├── rag_chatbot_v2/        # v2 — two-phase ingestion & querying
+│   ├── injest.py          #   Loads PDFs → chunks → embeds → persists to disk
+│   ├── query.py           #   Loads persisted vector store → interactive CLI
+│   └── readme.md
+├── chroma_db/             # Persisted vector store (auto-generated, git-ignored)
+├── requirements.txt       # Shared Python dependencies
+├── .env                   # GROQ_API_KEY (git-ignored)
+└── .gitignore
 ```
 
-### 2. Create a virtual environment
+## Versions
+
+| | v1 (`rag_chatbot`) | v2 (`rag_chatbot_v2`) |
+|---|---|---|
+| Files | Single `chatbot.py` | `injest.py` + `query.py` |
+| Vector store | In-memory (rebuilds every run) | Persisted to `./chroma_db` |
+| PDFs | Single file (hardcoded) | All PDFs from `docs/` |
+| Interface | Hardcoded sample queries | Interactive CLI loop |
+| Chunk size | 1000 chars, 200 overlap | 500 chars, 50 overlap |
+
+## Quick start
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate  # on Mac/Linux
-```
-
-### 3. Install dependencies
-
-```bash
+python -m venv .venv
+source .venv/bin/activate           # on Mac/Linux
 pip install -r requirements.txt
+
+# Add your PDFs to docs/
+# Create .env with GROQ_API_KEY=your_key
+
+# v1
+python rag_chatbot/chatbot.py
+
+# v2
+python rag_chatbot_v2/injest.py
+python rag_chatbot_v2/query.py
 ```
-
-### 4. Set up your API key
-
-Create a `.env` file in the project root:
-
-```
-GROQ_API_KEY=your_groq_api_key_here
-```
-
-> Get a free API key from [console.groq.com](https://console.groq.com/).
-
-### 5. Add your PDF
-
-Place the PDF you want to query in the project root and update the filename in the script (default: `test.pdf`).
-
-### 6. Run
-
-```bash
-python main.py
-```
-
-## Example queries
-
-The script currently asks a few sample questions:
-
-```python
-ask_chatbot("Where is the store located")
-ask_chatbot("What is the usp of the company")
-ask_chatbot("What are some products available in the store")
-ask_chatbot("Are there any vacancy available in the company")
-```
-
-Swap these out or wrap `ask_chatbot()` in a loop / CLI input for interactive use.
 
 ## Notes
 
-- Embeddings run locally (no external API needed), so the first run will download the `all-MiniLM-L6-v2` model (~80MB).
-- The vector store is currently in-memory — it rebuilds from the PDF on every run. Persistence (`persist_directory`) can be added for larger documents.
-- `.env` is git-ignored — never commit API keys.
+- Embeddings run locally via `sentence-transformers/all-MiniLM-L6-v2` (~80MB download on first run).
+- Requires a free Groq API key from [console.groq.com](https://console.groq.com/).
+- `.env` and `chroma_db/` are git-ignored, never commit API keys.

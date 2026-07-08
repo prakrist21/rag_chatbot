@@ -8,7 +8,7 @@ from langchain_groq import ChatGroq
 
 load_dotenv()  
 
-loader = PyPDFLoader('test.pdf')
+loader = PyPDFLoader('docs\Description.pdf')
 pdf_loader = loader.load()
 
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
